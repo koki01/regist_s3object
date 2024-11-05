@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -22,7 +23,12 @@ import (
 
 func handler(ctx context.Context, s3Event events.S3Event) error {
 
-	sdkconfig, _ := config.LoadDefaultConfig(ctx)
+	sdkconfig, err := config.LoadDefaultConfig(ctx)
+
+	if err != nil {
+		fmt.Printf("failed to get config: %s", err)
+		return err
+	}
 
 	s3Client := s3.NewFromConfig(sdkconfig)
 
@@ -36,19 +42,30 @@ func handler(ctx context.Context, s3Event events.S3Event) error {
 		key = record.S3.Object.Key
 	}
 
-	//対象オブジェクトを読み込む
-	object, _ := s3Client.GetObject(ctx, &s3.GetObjectInput{
+	//対象オブジェクトを取得
+	object, err := s3Client.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})
 
-	log.Printf("get detail bucket %s object %s", bucket, key)
+	if err != nil {
+		fmt.Printf("failed to get object detail: %s", err)
+		return err
+	} else {
+		log.Printf("get detail bucket %s object %s", bucket, key)
+	}
 
+	//取得したオブジェクトを読み込む
 	content := object.Body
 
 	defer content.Close()
 
-	binary, _ := io.ReadAll(content)
+	binary, err := io.ReadAll(content)
+
+	if err != nil {
+		fmt.Printf("failed to read data: %s", err)
+		return err
+	}
 
 	value := string(binary)
 
@@ -56,26 +73,37 @@ func handler(ctx context.Context, s3Event events.S3Event) error {
 
 	arr := strings.Split(value, ",")
 
+	if len(arr) != 3 {
+
+		errmsg := "file foramt error"
+		fmt.Print(errmsg)
+		return errors.New(errmsg)
+	}
+
+	//取得した値を構造体へ
 	var msg model.Message
 
 	msg.Team = arr[0]
 	msg.Name = arr[1]
 	msg.Age, _ = strconv.Atoi(arr[2])
 
-	//読み込んだ値をSQSへ
+	//SQSへ送信
 	queueURL := os.Getenv("QUEUE_URL")
 
 	msgJson, _ := json.Marshal(msg)
 
 	sqsClient := sqs.NewFromConfig(sdkconfig)
 
-	_, err := sqsClient.SendMessage(ctx, &sqs.SendMessageInput{
+	_, err = sqsClient.SendMessage(ctx, &sqs.SendMessageInput{
 		MessageBody: aws.String(string(msgJson)),
 		QueueUrl:    &queueURL,
 	})
 
 	if err != nil {
-		fmt.Printf("error occur %s", err)
+		fmt.Printf("failed to send message: %s", err)
+		return err
+	} else {
+		fmt.Printf("successed to send message. Team %s Name %s Age %d", msg.Team, msg.Name, msg.Age)
 	}
 
 	return nil

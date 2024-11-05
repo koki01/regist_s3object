@@ -9,6 +9,7 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 func handler(sqsEvent events.SQSEvent) {
@@ -22,38 +23,37 @@ func handler(sqsEvent events.SQSEvent) {
 
 func process(message events.SQSMessage) {
 
-	//受信したメッセージを構造体へ
-	var value model.Message
-
 	fmt.Printf("message: %s¥n", message.Body)
 
+	//受信したメッセージを構造体へ
+	var value model.Message
 	err := json.Unmarshal([]byte(message.Body), &value)
 
 	if err != nil {
-		fmt.Printf("read error: %s¥n", err)
+		fmt.Printf("read ng: %s¥n", err)
 
 	} else {
-		fmt.Printf("Team: %s Name: %s Age: %d", value.Team, value.Name, value.Age)
+		fmt.Printf("read ok: Team %s Name %s Age %d", value.Team, value.Name, value.Age)
 	}
 
-	//DBへ登録する
+	//DBへ接続
 	db, err := intitDB()
 
 	if err != nil {
-
-		db.Close()
-		fmt.Printf("db connection ng : %s", err)
+		fmt.Printf("db connection ng: %s", err)
 		return
 	}
 
 	defer db.Close()
 
+	//DBへ登録する
 	err = insertRecord(db, value)
 
 	if err != nil {
-		fmt.Print(err)
+		fmt.Printf("insert ng: %s", err)
+	} else {
+		fmt.Print("insert ok")
 	}
-
 }
 
 // DB接続
@@ -62,8 +62,11 @@ func intitDB() (*sql.DB, error) {
 	dbname := os.Getenv("DATABASE")
 	user := os.Getenv("USER")
 	pass := os.Getenv("PASS")
+	endpoint := os.Getenv("ENDPOINT")
 
-	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(db:3306)/%s", user, pass, dbname))
+	fmt.Printf("db connect start: database %s user %s pass %s", dbname, user, pass)
+
+	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:3306)/%s", user, pass, endpoint, dbname))
 
 	if err != nil {
 		return nil, err
@@ -73,17 +76,17 @@ func intitDB() (*sql.DB, error) {
 		return nil, err
 	}
 
+	fmt.Printf("db connect ok")
 	return db, nil
 }
 
 // INSERT実行
 func insertRecord(db *sql.DB, msg model.Message) error {
 
-	stmt, err := db.Prepare("INSERT INTO sample_table VALUES(?,?,?)")
+	stmt, err := db.Prepare("INSERT INTO player(team,name,age) VALUES(?,?,?)")
 
 	if err != nil {
-		stmt.Close()
-		return fmt.Errorf("db prepare ng: %d", err)
+		return err
 	}
 
 	defer stmt.Close()
@@ -91,13 +94,12 @@ func insertRecord(db *sql.DB, msg model.Message) error {
 	_, err = stmt.Exec(msg.Team, msg.Name, msg.Age)
 
 	if err != nil {
-		return fmt.Errorf("insert ng: %d", err)
+		return err
+	} else {
+		return nil
 	}
-
-	return nil
 }
 
 func main() {
-
 	lambda.Start(handler)
 }
