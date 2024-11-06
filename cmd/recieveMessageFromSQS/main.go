@@ -23,24 +23,24 @@ func handler(sqsEvent events.SQSEvent) {
 
 func process(message events.SQSMessage) {
 
-	fmt.Printf("message: %s¥n", message.Body)
+	fmt.Printf("message: %s\n", message.Body)
 
 	//受信したメッセージを構造体へ
 	var value model.Message
 	err := json.Unmarshal([]byte(message.Body), &value)
 
 	if err != nil {
-		fmt.Printf("read ng: %s¥n", err)
+		fmt.Printf("read ng: %s\n", err)
 
 	} else {
-		fmt.Printf("read ok: Team %s Name %s Age %d", value.Team, value.Name, value.Age)
+		fmt.Printf("read ok: Team %s Name %s Age %d\n", value.Team, value.Name, value.Age)
 	}
 
 	//DBへ接続
 	db, err := intitDB()
 
 	if err != nil {
-		fmt.Printf("db connection ng: %s", err)
+		fmt.Printf("db connection ng: %s\n", err)
 		return
 	}
 
@@ -50,9 +50,9 @@ func process(message events.SQSMessage) {
 	err = insertRecord(db, value)
 
 	if err != nil {
-		fmt.Printf("insert ng: %s", err)
+		fmt.Printf("insert ng: %s\n", err)
 	} else {
-		fmt.Print("insert ok")
+		fmt.Print("insert ok\n")
 	}
 }
 
@@ -64,7 +64,7 @@ func intitDB() (*sql.DB, error) {
 	pass := os.Getenv("PASS")
 	endpoint := os.Getenv("ENDPOINT")
 
-	fmt.Printf("db connect start: database %s user %s pass %s", dbname, user, pass)
+	fmt.Printf("db connect start: database %s user %s pass %s\n", dbname, user, pass)
 
 	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:3306)/%s", user, pass, endpoint, dbname))
 
@@ -76,7 +76,7 @@ func intitDB() (*sql.DB, error) {
 		return nil, err
 	}
 
-	fmt.Printf("db connect ok")
+	fmt.Printf("db connect ok\n")
 	return db, nil
 }
 

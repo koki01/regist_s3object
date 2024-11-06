@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -26,7 +25,7 @@ func handler(ctx context.Context, s3Event events.S3Event) error {
 	sdkconfig, err := config.LoadDefaultConfig(ctx)
 
 	if err != nil {
-		fmt.Printf("failed to get config: %s", err)
+		fmt.Printf("failed to get config: %s\n", err)
 		return err
 	}
 
@@ -49,10 +48,10 @@ func handler(ctx context.Context, s3Event events.S3Event) error {
 	})
 
 	if err != nil {
-		fmt.Printf("failed to get object detail: %s", err)
+		fmt.Printf("failed to get object detail: %s\n", err)
 		return err
 	} else {
-		log.Printf("get detail bucket %s object %s", bucket, key)
+		fmt.Printf("get detail bucket %s object %s\n", bucket, key)
 	}
 
 	//取得したオブジェクトを読み込む
@@ -63,21 +62,19 @@ func handler(ctx context.Context, s3Event events.S3Event) error {
 	binary, err := io.ReadAll(content)
 
 	if err != nil {
-		fmt.Printf("failed to read data: %s", err)
+		fmt.Printf("failed to read data: %s\n", err)
 		return err
 	}
 
 	value := string(binary)
 
-	log.Printf("get value %s", value)
+	fmt.Printf("get value %s\n", value)
 
 	arr := strings.Split(value, ",")
 
 	if len(arr) != 3 {
-
-		errmsg := "file foramt error"
-		fmt.Print(errmsg)
-		return errors.New(errmsg)
+		fmt.Print("file foramt error\n")
+		return errors.New("file foramt error")
 	}
 
 	//取得した値を構造体へ
@@ -100,10 +97,10 @@ func handler(ctx context.Context, s3Event events.S3Event) error {
 	})
 
 	if err != nil {
-		fmt.Printf("failed to send message: %s", err)
+		fmt.Printf("failed to send message: %s\n", err)
 		return err
 	} else {
-		fmt.Printf("successed to send message. Team %s Name %s Age %d", msg.Team, msg.Name, msg.Age)
+		fmt.Printf("successed to send message. Team %s Name %s Age %d\n", msg.Team, msg.Name, msg.Age)
 	}
 
 	return nil
