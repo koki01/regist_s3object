@@ -83,7 +83,7 @@ func intitDB() (*sql.DB, error) {
 // INSERT実行
 func insertRecord(db *sql.DB, msg model.Message) error {
 
-	stmt, err := db.Prepare("INSERT INTO player(team,name,age) VALUES(?,?,?)")
+	stmt, err := db.Prepare("INSERT INTO player_list(team,name,age) VALUES(?,?,?)")
 
 	if err != nil {
 		return err
