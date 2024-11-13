@@ -83,6 +83,7 @@ func handler(ctx context.Context, s3Event events.S3Event) error {
 	msg.Team = arr[0]
 	msg.Name = arr[1]
 	msg.Age, _ = strconv.Atoi(arr[2])
+	msg.ObjectName = key
 
 	//SQSへ送信
 	queueURL := os.Getenv("QUEUE_URL")
