@@ -48,10 +48,10 @@ func handler(ctx context.Context, s3Event events.S3Event) error {
 	})
 
 	if err != nil {
-		fmt.Printf("failed to get object detail: %s\n", err)
+		fmt.Printf("failed to get object. bucket[%s] object[%s]: %s\n", err, bucket, key)
 		return err
 	} else {
-		fmt.Printf("get detail bucket %s object %s\n", bucket, key)
+		fmt.Printf("get object. bucket[%s] object[%s]\n", bucket, key)
 	}
 
 	//取得したオブジェクトを読み込む
@@ -68,13 +68,13 @@ func handler(ctx context.Context, s3Event events.S3Event) error {
 
 	value := string(binary)
 
-	fmt.Printf("get value %s\n", value)
+	fmt.Printf("get value. [%s]\n", value)
 
 	arr := strings.Split(value, ",")
 
-	if len(arr) != 3 {
-		fmt.Print("file foramt error\n")
-		return errors.New("file foramt error")
+	if len(arr) != 4 {
+		fmt.Print("file format error\n")
+		return errors.New("file format error")
 	}
 
 	//取得した値を構造体へ
@@ -83,6 +83,8 @@ func handler(ctx context.Context, s3Event events.S3Event) error {
 	msg.Team = arr[0]
 	msg.Name = arr[1]
 	msg.Age, _ = strconv.Atoi(arr[2])
+	var sex_int, _ = strconv.Atoi(arr[3])
+	msg.Sex = model.SexFlag(sex_int)
 	msg.ObjectName = key
 
 	//SQSへ送信
@@ -98,10 +100,10 @@ func handler(ctx context.Context, s3Event events.S3Event) error {
 	})
 
 	if err != nil {
-		fmt.Printf("failed to send message: %s\n", err)
+		fmt.Printf("failed to send message. bucket[%s] object[%s]: %s\n", bucket, key, err)
 		return err
 	} else {
-		fmt.Printf("successed to send message. Team %s Name %s Age %d\n", msg.Team, msg.Name, msg.Age)
+		fmt.Printf("send message. [Team %s Name %s Age %d Sex %d ]\n", msg.Team, msg.Name, msg.Age, msg.Sex)
 	}
 
 	return nil
